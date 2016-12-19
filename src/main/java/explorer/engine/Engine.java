@@ -1,8 +1,25 @@
 package explorer.engine;
 
-import com.google.bitcoin.core.*;
-import com.google.bitcoin.store.BlockStore;
-import com.google.bitcoin.store.MemoryBlockStore;
+import java.net.InetAddress;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Future;
+
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.BlockChain;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Peer;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.store.BlockStore;
+import org.bitcoinj.store.MemoryBlockStore;
+
 import com.zaxxer.hikari.HikariDataSource;
 
 import explorer.db.ExplorerBlock;
@@ -38,15 +55,6 @@ import explorer.protocol.list.stampd.Stampd;
 import explorer.protocol.list.stampery.Stampery;
 import explorer.protocol.list.tradle.Tradle;
 import explorer.protocol.list.unknown.Unknown;
-
-import java.net.InetAddress;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Future;
 
 
 public class Engine implements Runnable{

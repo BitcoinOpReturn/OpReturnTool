@@ -1,6 +1,6 @@
 package explorer.db;
 
-import com.google.bitcoin.core.Coin;
+import org.bitcoinj.core.Coin;
 
 public class ExplorerTransaction {
 	private String txHash;
