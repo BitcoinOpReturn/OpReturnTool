@@ -10,6 +10,11 @@
     <name>BitcoinMetadataExplorer</name>
     <description>An explorer for Bitcoin metadata using the bitcoinj library</description>
     
+	<properties>
+	    <maven.compiler.source>1.8</maven.compiler.source>
+	    <maven.compiler.target>1.8</maven.compiler.target>
+	</properties>
+  
     <dependencies>
 	    <dependency>
 	      <groupId>org.bitcoinj</groupId>
