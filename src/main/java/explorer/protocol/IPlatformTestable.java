@@ -2,8 +2,8 @@ package explorer.protocol;
 
 import java.util.List;
 
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Transaction;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Transaction;
 
 import explorer.db.ExplorerAsset;
 import explorer.db.ExplorerHolder;
