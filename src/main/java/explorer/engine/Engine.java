@@ -159,8 +159,6 @@ public class Engine implements Runnable{
 		
 			// Scan all the blocks of the current interval
 			while(!firstBlock.equals(lastBlock)){
-				System.out.println(firstBlock);
-				
 				Future<Block> future = peer.getBlock(firstBlock);
 				Block block = future.get();
 				

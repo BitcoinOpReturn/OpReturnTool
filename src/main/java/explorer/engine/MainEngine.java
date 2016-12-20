@@ -32,10 +32,9 @@ public class MainEngine {
 		this.lastBlock = new Sha256Hash[THREADS];					// For each thread indicates the last (older) block to explore
 
 		this.config = new HikariConfig();
-		config.setMaximumPoolSize(100);
-		config.setDataSourceClassName("com.mysql.jdbc.jdbc2.optional.MysqlDataSource");
-		config.addDataSourceProperty("serverName", "localhost");
-		config.addDataSourceProperty("port", "3306");
+	    config.setMaximumPoolSize(100);
+	    config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+	    config.setJdbcUrl("jdbc:mysql://localhost:3306/?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
 		config.addDataSourceProperty("databaseName", DBConfiguration.getDatabaseName());
 		config.addDataSourceProperty("user", DBConfiguration.getUser());
 		config.addDataSourceProperty("password", DBConfiguration.getPassword());
