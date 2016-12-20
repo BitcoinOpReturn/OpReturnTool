@@ -1,8 +1,12 @@
 package explorer.engine;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Timestamp;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,7 +18,6 @@ import org.bitcoinj.params.MainNetParams;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import explorer.db.DBConfiguration;
 import explorer.protocol.Protocol;
 
 
@@ -31,52 +34,66 @@ public class MainEngine {
 		this.firstBlock = new Sha256Hash[THREADS];					// For each thread indicates the first (younger) block to explore
 		this.lastBlock = new Sha256Hash[THREADS];					// For each thread indicates the last (older) block to explore
 
-		this.config = new HikariConfig();
-	    config.setMaximumPoolSize(100);
-	    config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-	    config.setJdbcUrl("jdbc:mysql://localhost:3306/?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
-		config.addDataSourceProperty("databaseName", DBConfiguration.getDatabaseName());
-		config.addDataSourceProperty("user", DBConfiguration.getUser());
-		config.addDataSourceProperty("password", DBConfiguration.getPassword());
+		Properties prop = new Properties();
+		try(InputStream input = new FileInputStream("resources/config.properties")){
 
-		// Open input file (containing chunks) and set first block and last block for each thread.
-		File f = new File(inputFile);
-		try(Scanner s = new Scanner(f)){
-			int indexFile = 0;
-			int indexThread = 0;
+			// load a properties file
+			prop.load(input);
 
-			// Skip chunks not requested
-			while(indexFile < firstChunk){
-				s.nextLine();
-				indexFile++;
-			}
+			// get the property value and print it out
+			String dbName = prop.getProperty("dbname");
+			String dbUser = prop.getProperty("dbuser");
+			String dbPassword = prop.getProperty("dbpassword");
 
-			// Load data for requested chunks
-			while(indexFile <= lastChunk){
-				this.firstBlock[indexThread] = new Sha256Hash(s.next());
-				this.lastBlock[indexThread] = new Sha256Hash(s.next());
-				s.nextLine();
-				indexFile++;
-				indexThread ++;
-			}
+			this.config = new HikariConfig();
+		    config.setMaximumPoolSize(100);
+		    config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+		    config.setJdbcUrl("jdbc:mysql://localhost:3306/?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
+			config.addDataSourceProperty("databaseName", dbName);
+			config.addDataSourceProperty("user", dbUser);
+			config.addDataSourceProperty("password", dbPassword);
 
-			try(HikariDataSource ds = new HikariDataSource(config)){
-				// Creating workers
-				for(int i=0; i<THREADS; i++){
-					exec.execute(new Engine(MainNetParams.get(), ds, i, platform, firstBlock[i], lastBlock[i]));		
+			// Open input file (containing chunks) and set first block and last block for each thread.
+			File f = new File(inputFile);
+			try(Scanner s = new Scanner(f)){
+				int indexFile = 0;
+				int indexThread = 0;
+
+				// Skip chunks not requested
+				while(indexFile < firstChunk){
+					s.nextLine();
+					indexFile++;
 				}
 
-				// Waiting threads
-				exec.shutdown();
-				while(! exec.awaitTermination(1, TimeUnit.MINUTES))
-					System.out.println("Waiting another minute");
-			
-			}catch(Exception e){
+				// Load data for requested chunks
+				while(indexFile <= lastChunk){
+					this.firstBlock[indexThread] = new Sha256Hash(s.next());
+					this.lastBlock[indexThread] = new Sha256Hash(s.next());
+					s.nextLine();
+					indexFile++;
+					indexThread ++;
+				}
+
+				try(HikariDataSource ds = new HikariDataSource(config)){
+					// Creating workers
+					for(int i=0; i<THREADS; i++){
+						exec.execute(new Engine(MainNetParams.get(), ds, i, platform, firstBlock[i], lastBlock[i]));		
+					}
+
+					// Waiting threads
+					exec.shutdown();
+					while(! exec.awaitTermination(1, TimeUnit.MINUTES))
+						System.out.println("Waiting another minute");
+				
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+
+			} catch(FileNotFoundException e){
 				e.printStackTrace();
 			}
-
-		} catch(FileNotFoundException e){
-			e.printStackTrace();
+		} catch (IOException ex) {
+			ex.printStackTrace();
 		}
 	}
 
