@@ -28,72 +28,80 @@ public class MainEngine {
 	private Sha256Hash[] lastBlock;
 	HikariConfig config;
 
-	public MainEngine(String inputFile, Protocol platform, int firstChunk, int lastChunk){
+	public MainEngine(String inputFile, Protocol platform, int firstChunk, int lastChunk) throws IOException{
 		THREADS = lastChunk-firstChunk+1;							// Setting number of workers
 		this.exec = Executors.newFixedThreadPool(THREADS);			// Initializing thread executor service
 		this.firstBlock = new Sha256Hash[THREADS];					// For each thread indicates the first (younger) block to explore
 		this.lastBlock = new Sha256Hash[THREADS];					// For each thread indicates the last (older) block to explore
 
+		String dbName;
+		String dbUser;
+		String dbPassword;
+		
 		Properties prop = new Properties();
-		try(InputStream input = new FileInputStream("resources/config.properties")){
+		try(InputStream local = new FileInputStream("resources/local.properties")){
+			// load local properties file
+			prop.load(local);
 
-			// load a properties file
-			prop.load(input);
+			dbName = prop.getProperty("dbname");
+			dbUser = prop.getProperty("dbuser");
+			dbPassword = prop.getProperty("dbpassword");
+		} catch(IOException e){
+			InputStream global = new FileInputStream("resources/global.properties");
+			// load global properties file
+			prop.load(global);
 
-			// get the property value and print it out
-			String dbName = prop.getProperty("dbname");
-			String dbUser = prop.getProperty("dbuser");
-			String dbPassword = prop.getProperty("dbpassword");
+			dbName = prop.getProperty("dbname");
+			dbUser = prop.getProperty("dbuser");
+			dbPassword = prop.getProperty("dbpassword");
+		}
 
-			this.config = new HikariConfig();
-		    config.setMaximumPoolSize(100);
-		    config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-		    config.setJdbcUrl("jdbc:mysql://localhost:3306/?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
-			config.addDataSourceProperty("databaseName", dbName);
-			config.addDataSourceProperty("user", dbUser);
-			config.addDataSourceProperty("password", dbPassword);
+		this.config = new HikariConfig();
+	    config.setMaximumPoolSize(100);
+	    config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+	    config.setJdbcUrl("jdbc:mysql://localhost:3306/?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
+		config.addDataSourceProperty("databaseName", dbName);
+		config.addDataSourceProperty("user", dbUser);
+		config.addDataSourceProperty("password", dbPassword);
 
-			// Open input file (containing chunks) and set first block and last block for each thread.
-			File f = new File(inputFile);
-			try(Scanner s = new Scanner(f)){
-				int indexFile = 0;
-				int indexThread = 0;
+		// Open input file (containing chunks) and set first block and last block for each thread.
+		File f = new File(inputFile);
+		try(Scanner s = new Scanner(f)){
+			int indexFile = 0;
+			int indexThread = 0;
 
-				// Skip chunks not requested
-				while(indexFile < firstChunk){
-					s.nextLine();
-					indexFile++;
-				}
-
-				// Load data for requested chunks
-				while(indexFile <= lastChunk){
-					this.firstBlock[indexThread] = new Sha256Hash(s.next());
-					this.lastBlock[indexThread] = new Sha256Hash(s.next());
-					s.nextLine();
-					indexFile++;
-					indexThread ++;
-				}
-
-				try(HikariDataSource ds = new HikariDataSource(config)){
-					// Creating workers
-					for(int i=0; i<THREADS; i++){
-						exec.execute(new Engine(MainNetParams.get(), ds, i, platform, firstBlock[i], lastBlock[i]));		
-					}
-
-					// Waiting threads
-					exec.shutdown();
-					while(! exec.awaitTermination(1, TimeUnit.MINUTES))
-						System.out.println("Waiting another minute");
-				
-				}catch(Exception e){
-					e.printStackTrace();
-				}
-
-			} catch(FileNotFoundException e){
-				e.printStackTrace();
+			// Skip chunks not requested
+			while(indexFile < firstChunk){
+				s.nextLine();
+				indexFile++;
 			}
-		} catch (IOException ex) {
-			ex.printStackTrace();
+
+			// Load data for requested chunks
+			while(indexFile <= lastChunk){
+				this.firstBlock[indexThread] = new Sha256Hash(s.next());
+				this.lastBlock[indexThread] = new Sha256Hash(s.next());
+				s.nextLine();
+				indexFile++;
+				indexThread ++;
+			}
+
+			try(HikariDataSource ds = new HikariDataSource(config)){
+				// Creating workers
+				for(int i=0; i<THREADS; i++){
+					exec.execute(new Engine(MainNetParams.get(), ds, i, platform, firstBlock[i], lastBlock[i]));		
+				}
+
+				// Waiting threads
+				exec.shutdown();
+				while(! exec.awaitTermination(1, TimeUnit.MINUTES))
+					System.out.println("Waiting another minute");
+			
+			}catch(Exception ex){
+				ex.printStackTrace();
+			}
+
+		} catch(FileNotFoundException fe){
+			fe.printStackTrace();
 		}
 	}
 
