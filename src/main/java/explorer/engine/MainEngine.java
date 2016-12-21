@@ -1,8 +1,5 @@
 package explorer.engine;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Timestamp;
@@ -28,45 +25,49 @@ public class MainEngine {
 	private Sha256Hash[] lastBlock;
 	HikariConfig config;
 
-	public MainEngine(String inputFile, Protocol platform, int firstChunk, int lastChunk) throws IOException{
-		THREADS = lastChunk-firstChunk+1;							// Setting number of workers
-		this.exec = Executors.newFixedThreadPool(THREADS);			// Initializing thread executor service
-		this.firstBlock = new Sha256Hash[THREADS];					// For each thread indicates the first (younger) block to explore
-		this.lastBlock = new Sha256Hash[THREADS];					// For each thread indicates the last (older) block to explore
-
+	public MainEngine() throws Exception{
+		String inputFile; 
+		Protocol protocol; 
+		int firstChunk; 
+		int lastChunk;
 		String dbName;
 		String dbUser;
 		String dbPassword;
 		
 		Properties prop = new Properties();
-		try(InputStream local = new FileInputStream("resources/local.properties")){
+		try(InputStream local = MainEngine.class.getClassLoader().getResourceAsStream("local.properties")){
 			// load local properties file
 			prop.load(local);
 
-			dbName = prop.getProperty("dbname");
-			dbUser = prop.getProperty("dbuser");
-			dbPassword = prop.getProperty("dbpassword");
 		} catch(IOException e){
-			InputStream global = new FileInputStream("resources/global.properties");
+			InputStream global = MainEngine.class.getClassLoader().getResourceAsStream("global.properties");
 			// load global properties file
 			prop.load(global);
-
-			dbName = prop.getProperty("dbname");
-			dbUser = prop.getProperty("dbuser");
-			dbPassword = prop.getProperty("dbpassword");
 		}
+		
+		dbName = prop.getProperty("dbname");
+		dbUser = prop.getProperty("dbuser");
+		dbPassword = prop.getProperty("dbpassword");
+		firstChunk = Integer.valueOf(prop.getProperty("firstChunk"));
+		lastChunk = Integer.valueOf(prop.getProperty("lastChunk"));
+		protocol = Protocol.getProtocol(prop.getProperty("protocol"));
+		inputFile = prop.getProperty("inputFile");
+		
+		THREADS = lastChunk-firstChunk+1;							// Setting number of workers
+		this.exec = Executors.newFixedThreadPool(THREADS);			// Initializing thread executor service
+		this.firstBlock = new Sha256Hash[THREADS];					// For each thread indicates the first (younger) block to explore
+		this.lastBlock = new Sha256Hash[THREADS];					// For each thread indicates the last (older) block to explore
 
 		this.config = new HikariConfig();
 	    config.setMaximumPoolSize(100);
 	    config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-	    config.setJdbcUrl("jdbc:mysql://localhost:3306/?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
+	    config.setJdbcUrl("jdbc:mysql://localhost:3306/?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&useSSL=false");
 		config.addDataSourceProperty("databaseName", dbName);
 		config.addDataSourceProperty("user", dbUser);
 		config.addDataSourceProperty("password", dbPassword);
 
 		// Open input file (containing chunks) and set first block and last block for each thread.
-		File f = new File(inputFile);
-		try(Scanner s = new Scanner(f)){
+		try(Scanner s = new Scanner(MainEngine.class.getClassLoader().getResourceAsStream(inputFile))){
 			int indexFile = 0;
 			int indexThread = 0;
 
@@ -88,7 +89,7 @@ public class MainEngine {
 			try(HikariDataSource ds = new HikariDataSource(config)){
 				// Creating workers
 				for(int i=0; i<THREADS; i++){
-					exec.execute(new Engine(MainNetParams.get(), ds, i, platform, firstBlock[i], lastBlock[i]));		
+					exec.execute(new Engine(MainNetParams.get(), ds, i, protocol, firstBlock[i], lastBlock[i]));		
 				}
 
 				// Waiting threads
@@ -99,9 +100,6 @@ public class MainEngine {
 			}catch(Exception ex){
 				ex.printStackTrace();
 			}
-
-		} catch(FileNotFoundException fe){
-			fe.printStackTrace();
 		}
 	}
 
@@ -110,8 +108,7 @@ public class MainEngine {
 		
 		System.out.println("Starting Analysis: " + new Timestamp(new java.util.Date().getTime()));
 		
-		//TODO add input validation
-		MainEngine e = new MainEngine(args[0], Protocol.getPlatform(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]));
+		MainEngine e = new MainEngine();
 		
 		System.out.println("Analysis concluded: " + new Timestamp(new java.util.Date().getTime()));
 	}
