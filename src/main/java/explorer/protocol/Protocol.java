@@ -25,17 +25,9 @@ public class Protocol {
 	public static final String COUNTERPARTY = "counterparty";
 	public static final String BLOCKAI = "blockai";
 	public static final String NICOSIA = "nicosia";
-	public static final String BITPOS = "bitpos";
 	public static final String LAPREUVE = "lapreuve";
 	
 	public static final String EMPTY = "empty";
 	
 	public static final String UNKNOWN = "unknown";
-	
-	public static final String ASSETS = "assets";
-	public static final String DOCUMENT = "document";
-	public static final String MEDIAMARKET = "mediamarket";
-	public static final String OTHER = "other";
-	
-	public static final String ALL = "all";
 }

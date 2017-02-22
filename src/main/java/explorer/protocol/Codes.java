@@ -37,6 +37,5 @@ public class Codes {
 	public static final String SMARTBIT_CODE1 = "53422e44";
 	public static final String BLOCKAI_CODE1 = "1f00";
 	public static final String NICOSIA_CODE1 = "554e6963444320";
-	public static final String BITPOS_CODE1 = "424944";
 	public static final String LAPREUVE_CODE1 = "4c61507265757665";
 }

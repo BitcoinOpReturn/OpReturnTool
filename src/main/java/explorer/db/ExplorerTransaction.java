@@ -82,11 +82,6 @@ public class ExplorerTransaction {
 				return tempString;
 			}
 			
-			if(tempString.contains(Codes.BRACKET + Codes.BITPOS_CODE1)){
-				this.protocol = Protocol.BITPOS;
-				return tempString;
-			}
-			
 			if(tempString.contains(Codes.BRACKET + Codes.BITPROOF_CODE1)){
 				this.protocol = Protocol.BITPROOF;
 				return tempString;
