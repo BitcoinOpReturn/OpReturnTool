@@ -24,43 +24,10 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import explorer.db.ExplorerBlock;
 import explorer.db.ExplorerTransaction;
-import explorer.protocol.IPlatformTestable;
-import explorer.protocol.Protocol;
-import explorer.protocol.UnsupportedProtocolException;
-import explorer.protocol.list.ascribe.Ascribe;
-import explorer.protocol.list.bitpos.BitPos;
-import explorer.protocol.list.bitproof.BitProof;
-import explorer.protocol.list.blockai.Blockai;
-import explorer.protocol.list.blocksign.BlockSign;
-import explorer.protocol.list.blockstore.Blockstore;
-import explorer.protocol.list.coinspark.CoinSpark;
-import explorer.protocol.list.colu.Colu;
-import explorer.protocol.list.counterparty.CounterParty;
-import explorer.protocol.list.cryptocopyright.CryptoCopyright;
-import explorer.protocol.list.empty.Empty;
-import explorer.protocol.list.eternitywall.EternityWall;
-import explorer.protocol.list.factom.Factom;
-import explorer.protocol.list.lapreuve.LaPreuve;
-import explorer.protocol.list.monegraph.Monegraph;
-import explorer.protocol.list.nicosia.Nicosia;
-import explorer.protocol.list.omni.Omni;
-import explorer.protocol.list.openassets.OpenAssets;
-import explorer.protocol.list.openbazzar.OpenBazzar;
-import explorer.protocol.list.originalmy.OriginalMy;
-import explorer.protocol.list.proofofexistence.ProofOfExistence;
-import explorer.protocol.list.provebit.ProveBit;
-import explorer.protocol.list.remembr.Remembr;
-import explorer.protocol.list.smartbit.SmartBit;
-import explorer.protocol.list.stampd.Stampd;
-import explorer.protocol.list.stampery.Stampery;
-import explorer.protocol.list.tradle.Tradle;
-import explorer.protocol.list.unknown.Unknown;
 
 
 public class Engine implements Runnable{
 	private final NetworkParameters params;
-	private final IPlatformTestable conf;
-	private Protocol platform;
 	private Sha256Hash firstBlock;
 	private Sha256Hash lastBlock;
 	private final HikariDataSource ds;
@@ -70,9 +37,8 @@ public class Engine implements Runnable{
 	private Set<ExplorerTransaction> transactions;
 	
 	
-	public Engine(NetworkParameters params, HikariDataSource ds, int CODE, Protocol platform, Sha256Hash firstBlock, Sha256Hash lastBlock) throws UnsupportedProtocolException{
+	public Engine(NetworkParameters params, HikariDataSource ds, int CODE, Sha256Hash firstBlock, Sha256Hash lastBlock){
 		this.params = params;
-		this.platform = platform;
 		this.firstBlock = firstBlock;
 		this.lastBlock = lastBlock;
 		this.ds = ds;
@@ -80,66 +46,6 @@ public class Engine implements Runnable{
 		this.blocks = new HashSet<>();
 		this.transactions = new HashSet<>();
 		this.CODE = CODE;
-		
-		switch(platform){
-			case COLU: this.conf = new Colu();
-			break;
-			case COINSPARK: this.conf = new CoinSpark();
-			break;
-			case OPENASSETS: this.conf = new OpenAssets();
-			break;
-			case OMNI: this.conf = new Omni();
-			break;
-			case FACTOM: this.conf = new Factom();
-			break;
-			case MONEGRAPH: this.conf = new Monegraph();
-			break;
-			case STAMPERY: this.conf = new Stampery();
-			break;
-			case ETERNITYWALL: this.conf = new EternityWall();
-			break;
-			case BLOCKSTORE: this.conf = new Blockstore();
-			break;
-			case CRYPTOCOPYRIGHT: this.conf = new CryptoCopyright();
-			break;
-			case STAMPD: this.conf = new Stampd();
-			break;
-			case TRADLE: this.conf = new Tradle();
-			break;
-			case ORIGINALMY: this.conf = new OriginalMy();
-			break;
-			case ASCRIBE: this.conf = new Ascribe();
-			break;
-			case BLOCKSIGN: this.conf = new BlockSign();
-			break;
-			case PROOFOFEXISTENCE: this.conf = new ProofOfExistence();
-			break;
-			case BITPROOF: this.conf = new BitProof();
-			break;
-			case PROVEBIT: this.conf = new ProveBit();
-			break;
-			case REMEMBR: this.conf = new Remembr();
-			break;
-			case SMARTBIT: this.conf = new SmartBit();
-			break;
-			case OPENBAZZAR: this.conf = new OpenBazzar();
-			break;
-			case COUNTERPARTY: this.conf = new CounterParty();
-			break;
-			case BLOCKAI: this.conf = new Blockai();
-			break;
-			case NICOSIA: this.conf = new Nicosia();
-			break;
-			case BITPOS: this.conf = new BitPos();
-			break;
-			case LAPREUVE: this.conf = new LaPreuve();
-			break;
-			case EMPTY: this.conf = new Empty();
-			break;
-			case UNKNOWN: this.conf = new Unknown();
-			break;
-			default: throw new UnsupportedProtocolException(platform.toString());
-		}
 	}
 	
 	
@@ -166,17 +72,19 @@ public class Engine implements Runnable{
 				for(Transaction tx : listTx){
 					
 					// Checking transaction
-					Boolean isValidTransaction = conf.init(block, tx);
+					ExplorerTransaction optx = new ExplorerTransaction(block, tx); 
 
-					if(isValidTransaction){
+					if(optx.isOpReturn()){
 
 						// Adding block
 						ExplorerBlock tempBlock = new ExplorerBlock(block.getHashAsString(), block.getTime());
 						blocks.add(tempBlock);
 						
 						// Adding transaction
-						ExplorerTransaction tempTx = new ExplorerTransaction(tx.getHashAsString(), block.getHashAsString(), conf.getOpReturnBytes(), tx.getFee());
-						transactions.add(tempTx);
+						optx.setTxHash(tx.getHashAsString());
+						optx.setBlockHash(block.getHashAsString());
+						optx.setFee(tx.getFee());
+						transactions.add(optx);
 					}
 				}
 
@@ -225,9 +133,9 @@ public class Engine implements Runnable{
 				// Writing transactions
 				for(ExplorerTransaction t : transactions){
 					System.out.println("Adding transaction " +  t.getTxHash());
-					String stringLock = "LOCK TABLE explorer." + platform.toString().toLowerCase() + "transactions WRITE;";
+					String stringLock = "LOCK TABLE explorer." + t.getProtocol() + "transactions WRITE;";
 					String stringTx = 
-							"INSERT IGNORE INTO explorer." + platform.toString().toLowerCase() + "transactions " +
+							"INSERT IGNORE INTO explorer." + t.getProtocol() + "transactions " +
 							"(transactionHash, block, opreturn) " +
 							"VALUES (?, ?, ?);";
 					String stringUnlock = "UNLOCK TABLE";
@@ -238,7 +146,7 @@ public class Engine implements Runnable{
 					
 					statementTx.setString(1, t.getTxHash());
 					statementTx.setString(2, t.getBlockHash());
-					statementTx.setString(3, t.getOpReturn());
+					statementTx.setString(3, t.getData());
 					
 					statementLock.execute();
 					statementTx.executeUpdate();

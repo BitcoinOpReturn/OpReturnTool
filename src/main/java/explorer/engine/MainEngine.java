@@ -15,19 +15,16 @@ import org.bitcoinj.params.MainNetParams;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import explorer.protocol.Protocol;
-
 
 public class MainEngine {
 	private final int THREADS;
 	private ExecutorService exec;
 	private Sha256Hash[] firstBlock;
 	private Sha256Hash[] lastBlock;
-	HikariConfig config;
+	private HikariConfig config;
 
 	public MainEngine() throws Exception{
 		String inputFile; 
-		Protocol protocol; 
 		int firstChunk; 
 		int lastChunk;
 		String dbName;
@@ -50,7 +47,6 @@ public class MainEngine {
 		dbPassword = prop.getProperty("dbpassword");
 		firstChunk = Integer.valueOf(prop.getProperty("firstChunk"));
 		lastChunk = Integer.valueOf(prop.getProperty("lastChunk"));
-		protocol = Protocol.getProtocol(prop.getProperty("protocol"));
 		inputFile = prop.getProperty("inputFile");
 		
 		THREADS = lastChunk-firstChunk+1;							// Setting number of workers
@@ -89,7 +85,7 @@ public class MainEngine {
 			try(HikariDataSource ds = new HikariDataSource(config)){
 				// Creating workers
 				for(int i=0; i<THREADS; i++){
-					exec.execute(new Engine(MainNetParams.get(), ds, i, protocol, firstBlock[i], lastBlock[i]));		
+					exec.execute(new Engine(MainNetParams.get(), ds, i, firstBlock[i], lastBlock[i]));		
 				}
 
 				// Waiting threads
