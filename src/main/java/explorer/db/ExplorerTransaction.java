@@ -11,6 +11,8 @@ import org.bitcoinj.script.Script;
 
 import explorer.protocol.Codes;
 import explorer.protocol.Protocol;
+import explorer.utils.ConvertUtils;
+import explorer.utils.RC4;
 
 public class ExplorerTransaction {
 	private String protocol;
@@ -26,7 +28,7 @@ public class ExplorerTransaction {
 		isOpReturn = false;
 		String value = evaluateType(block, tx);
 		if(isOpReturn)
-			setData(value);
+			data = extractData(value);
 	}
 	
 	
@@ -66,12 +68,11 @@ public class ExplorerTransaction {
 				}
 			} catch(ScriptException e){}
 		}
-		
+
 		if(this.isOpReturn == false) return null;
-		
-		
+
+
 		try{
-			
 			if(!tempString.contains("[")){
 				this.protocol = Protocol.EMPTY;
 				return tempString;
@@ -202,22 +203,33 @@ public class ExplorerTransaction {
 				this.protocol = Protocol.TRADLE;
 				return tempString;	
 			}	
-		
+
+
+			String key = tx.getInputs().get(0).getOutpoint().toString().substring(0, 64);			
+			String message = extractData(tempString);
+			RC4 rc4 = new RC4(ConvertUtils.hexToBytes(key));
+			String result = (ConvertUtils.bytesToHex(rc4.decrypt(ConvertUtils.hexToBytes(message)))).toLowerCase();
+			
+			if(result.startsWith(Codes.COUNTERPARTY_CODE1)){
+				this.protocol = Protocol.COUNTERPARTY;
+				return tempString;	
+			}
+			
 		} catch(ScriptException e){}
+		
 		
 		this.protocol = Protocol.UNKNOWN;
 		return tempString;
-
 	}
 	
 
-	public void setData(String value){
+	public String extractData(String value){
 		int v1 = value.indexOf("[");
 		int v2 = value.indexOf("]");
 		if((v1 == -1) || (v2 == -1)) 
-			this.data = "";
+			return "";
 		else
-			this.data = value.substring(v1+1, v2);
+			return value.substring(v1+1, v2);
 	}
 	
 	public String getProtocol(){

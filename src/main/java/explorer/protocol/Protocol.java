@@ -3,6 +3,7 @@ package explorer.protocol;
 public class Protocol {
 	public static final String COLU = "colu";
 	public static final String COINSPARK = "coinspark";
+	public static final String COUNTERPARTY = "counterparty";
 	public static final String OPENASSETS = "openassets";
 	public static final String OMNI = "omni";
 	public static final String FACTOM = "factom";
@@ -22,7 +23,6 @@ public class Protocol {
 	public static final String REMEMBR = "remembr";
 	public static final String SMARTBIT = "smartbit";
 	public static final String OPENBAZZAR = "openbazzar";
-	public static final String COUNTERPARTY = "counterparty";
 	public static final String BLOCKAI = "blockai";
 	public static final String NICOSIA = "nicosia";
 	public static final String LAPREUVE = "lapreuve";
