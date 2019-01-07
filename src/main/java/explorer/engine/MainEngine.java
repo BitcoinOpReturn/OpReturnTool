@@ -1,6 +1,5 @@
 package explorer.engine;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.Properties;
@@ -36,7 +35,7 @@ public class MainEngine {
 			// load local properties file
 			prop.load(local);
 
-		} catch(IOException e){
+		} catch(Exception e){
 			InputStream global = MainEngine.class.getClassLoader().getResourceAsStream("global.properties");
 			// load global properties file
 			prop.load(global);
